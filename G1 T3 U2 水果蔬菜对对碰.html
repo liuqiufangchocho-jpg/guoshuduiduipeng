@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>G1 T3 U2 水果和蔬菜 - 连连看</title>
+    <!-- 引入类似电子管数字字体 -->
+    <link href="https://fonts.cdnfonts.com/css/digital-7-mono" rel="stylesheet">
+    <style>
+        :root {
+            --forest-green: #7BAE7F;
+            --soft-yellow: #F9E79F;
+            --wood-brown: #8D6E63;
+            --sky-blue: #AED6F1;
+            --hint-purple: #A066D3;
+            --hint-neon: #FF00FF;
+            --bg-color: #F1F8E9; 
+            --led-red: #ff4d4d;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #f1f8e9 0%, #dcedc8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* 响应式整体布局容器 */
+        #main-layout {
+            display: flex;
+            flex-direction: row; /* 默认横向排布（电脑/平板） */
+            align-items: center;
+            justify-content: center;
+            gap: clamp(10px, 3vw, 30px); 
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        /* 垂直标题：响应式大小 */
+        #vertical-title {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            color: var(--wood-brown);
+            font-size: clamp(24px, 4.5vw, 48px); 
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-shadow: 2px 2px 0px white;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        #game-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: clamp(8px, 2vw, 20px);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: clamp(4px, 1vw, 8px) solid var(--forest-green);
+            position: relative;
+            flex-shrink: 1;
+            max-width: 100%;
+        }
+
+        #sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            color: var(--wood-brown);
+            flex-shrink: 0;
+        }
+
+        .side-box {
+            background: white;
+            padding: clamp(8px, 1.5vw, 15px);
+            border-radius: 15px;
+            border: 3px solid var(--forest-green);
+            min-width: clamp(80px, 15vw, 120px);
+            text-align: center;
+            box-shadow: 0 4px 0px rgba(0,0,0,0.05);
+        }
+
+        .side-label {
+            font-size: clamp(12px, 2vw, 16px);
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        #timer {
+            font-family: 'Digital-7 Mono', 'Courier New', monospace;
+            font-size: clamp(22px, 5vw, 40px);
+            background: #222;
+            color: #00ff41; 
+            padding: 5px;
+            border-radius: 6px;
+            display: inline-block;
+            min-width: 80px;
+            box-shadow: inset 0 0 5px #000;
+        }
+
+        #score {
+            font-size: clamp(22px, 5vw, 38px);
+            font-weight: bold;
+        }
+
+        /* 核心响应式网格 */
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr); 
+            grid-gap: clamp(5px, 1.2vw, 12px);
+            background: var(--soft-yellow);
+            padding: clamp(6px, 1.5vw, 15px);
+            border-radius: 15px;
+            width: 100%;
+            aspect-ratio: 6 / 5; /* 保持网格比例 */
+        }
+
+        .tile {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: clamp(6px, 1.5vw, 15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(20px, 6vw, 55px); 
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 0 #cbd5e0;
+            user-select: none;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        /* 移动端适配：当屏幕宽度小于 800px 时切换为纵向布局 */
+        @media (max-width: 800px) {
+            #main-layout {
+                flex-direction: column; 
+                gap: 10px;
+                padding-bottom: 20px;
+            }
+
+            #vertical-title {
+                writing-mode: horizontal-tb; 
+                margin-bottom: 5px;
+                font-size: 28px;
+            }
+
+            #sidebar {
+                flex-direction: row; 
+                width: 100%;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .side-box {
+                flex: 1;
+                max-width: 140px;
+                min-width: auto;
+            }
+            
+            #game-container {
+                width: 95vw; /* 占据屏幕绝大部分宽度 */
+            }
+        }
+
+        /* 针对超小屏幕手机 */
+        @media (max-width: 400px) {
+            #grid {
+                grid-gap: 4px;
+                padding: 5px;
+            }
+        }
+
+        .tile:active { transform: translateY(2px); box-shadow: 0 2px 0 #cbd5e0; }
+        .tile.selected { background: var(--sky-blue); transform: scale(1.05); z-index: 2; box-shadow: 0 0 15px var(--sky-blue); border: 2px solid white; }
+        .tile.hidden { visibility: hidden; pointer-events: none; opacity: 0; transform: scale(0.4); }
+        .tile.correct { animation: celebrate 0.4s ease-out forwards; }
+
+        .tile.hint {
+            animation: purple-neon-pulse 1.5s infinite ease-in-out;
+            border: 2px solid var(--hint-purple);
+            z-index: 5;
+        }
+
+        @keyframes purple-neon-pulse {
+            0%, 100% { box-shadow: 0 4px 0 #cbd5e0, 0 0 5px var(--hint-purple); transform: scale(1); background: white; }
+            50% { box-shadow: 0 4px 0 #cbd5e0, 0 0 20px var(--hint-neon); transform: scale(1.03); background: #F3E5F5; }
+        }
+
+        @keyframes celebrate {
+            0% { transform: scale(1); background: #C8E6C9; }
+            50% { transform: scale(1.3) rotate(15deg); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.96);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #start-btn {
+            font-size: clamp(60px, 18vw, 100px);
+            cursor: pointer;
+            background: none;
+            border: none;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+        }
+        
+        .instructions {
+            font-size: clamp(16px, 4vw, 30px); 
+            color: var(--wood-brown);
+            margin-top: 15px;
+            font-weight: normal; 
+            text-align: center;
+            line-height: 1.4;
+            max-width: 90%;
+        }
+
+        #result { display: none; text-align: center; width: 100%; }
+        #result h2 { font-size: clamp(100px, 20vw, 200px); margin: 0; line-height: 1; }
+        #final-score-val { font-size: clamp(36px, 8vw, 60px); color: var(--wood-brown); margin: 10px 0; font-weight: bold; }
+        #retry-btn { font-size: clamp(50px, 12vw, 80px); background: none; border: none; cursor: pointer; }
+
+        .firework { position: fixed; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; z-index: 999; }
+    </style>
+</head>
+<body>
+
+<div id="main-layout">
+    <div id="vertical-title">G1 T3 U2 水果和蔬菜</div>
+
+    <div id="game-container">
+        <div id="grid"></div>
+
+        <div id="overlay">
+            <div id="start-menu" style="text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <button id="start-btn">👉</button>
+                <p class="instructions">Please click the identical images to win points.</p>
+            </div>
+            <div id="result">
+                <h2>🏆</h2>
+                <div id="final-score-val"></div>
+                <button id="retry-btn" onclick="location.reload()">🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="side-box">
+            <div class="side-label">TIME</div>
+            <div id="timer">01:00</div>
+        </div>
+        <div class="side-box">
+            <div class="side-label">SCORE</div>
+            <div id="score">0</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const itemsConfig = [
+        {emoji: '🍏', name: '苹果', count: 2},
+        {emoji: '🍌', name: '香蕉', count: 2},
+        {emoji: '🍓', name: '草莓', count: 2},
+        {emoji: '🍉', name: '西瓜', count: 2},
+        {emoji: '🧅', name: '洋葱', count: 2},
+        {emoji: '🥔', name: '土豆', count: 4},
+        {emoji: '🍆', name: '茄子', count: 4},
+        {emoji: '🥒', name: '黄瓜', count: 4},
+        {emoji: '🥕', name: '胡萝卜', count: 4},
+        {emoji: '🍅', name: '西红柿', count: 4}
+    ];
+
+    let gameData = [];
+    itemsConfig.forEach(item => {
+        for(let i=0; i<item.count; i++) {
+            gameData.push({emoji: item.emoji, name: item.name});
+        }
+    });
+
+    let score = 0;
+    let timeLeft = 60;
+    let timerId = null;
+    let firstTile = null;
+    let isProcessing = false;
+    let hasShownHint = false;
+
+    const grid = document.getElementById('grid');
+    const scoreDisplay = document.getElementById('score');
+    const timerDisplay = document.getElementById('timer');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('start-btn');
+    const startMenu = document.getElementById('start-menu');
+    const resultDiv = document.getElementById('result');
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTone(freq, type, duration) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const secs = (seconds % 60).toString().padStart(2, '0');
+        return `${mins}:${secs}`;
+    }
+
+    function initGame() {
+        // 洗牌算法
+        for (let i = gameData.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [gameData[i], gameData[j]] = [gameData[j], gameData[i]];
+        }
+
+        grid.innerHTML = '';
+        gameData.forEach((item, index) => {
+            const tile = document.createElement('div');
+            tile.classList.add('tile');
+            tile.dataset.name = item.name;
+            tile.dataset.index = index; 
+            tile.innerText = item.emoji;
+            tile.addEventListener('click', () => handleTileClick(tile));
+            grid.appendChild(tile);
+        });
+    }
+
+    function showTutorialHint() {
+        if (hasShownHint) return;
+        const tiles = Array.from(document.querySelectorAll('.tile:not(.hidden)'));
+        let foundPair = null;
+
+        for (let i = 0; i < tiles.length; i++) {
+            for (let j = i + 1; j < tiles.length; j++) {
+                if (tiles[i].dataset.name === tiles[j].dataset.name) {
+                    foundPair = [tiles[i], tiles[j]];
+                    break;
+                }
+            }
+            if (foundPair) break;
+        }
+
+        if (foundPair) {
+            foundPair[0].classList.add('hint');
+            foundPair[1].classList.add('hint');
+        }
+    }
+
+    function clearHints() {
+        document.querySelectorAll('.tile.hint').forEach(t => t.classList.remove('hint'));
+        hasShownHint = true;
+    }
+
+    function speak(text) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'zh-CN';
+        msg.rate = 1.3;
+        window.speechSynthesis.speak(msg);
+    }
+
+    function handleTileClick(tile) {
+        if (isProcessing || tile.classList.contains('hidden') || tile === firstTile) return;
+        
+        clearHints();
+        speak(tile.dataset.name);
+        tile.classList.add('selected');
+
+        if (!firstTile) {
+            firstTile = tile;
+        } else {
+            isProcessing = true;
+            if (firstTile.dataset.name === tile.dataset.name) {
+                playTone(523, 'sine', 0.2); 
+                score += 20;
+                scoreDisplay.innerText = score;
+                const t1 = firstTile;
+                const t2 = tile;
+                setTimeout(() => {
+                    t1.classList.add('correct');
+                    t2.classList.add('correct');
+                    setTimeout(() => {
+                        t1.classList.add('hidden');
+                        t2.classList.add('hidden');
+                        isProcessing = false;
+                        checkWin();
+                    }, 400);
+                }, 200);
+                firstTile = null;
+            } else {
+                playTone(220, 'sawtooth', 0.3); 
+                const t1 = firstTile;
+                const t2 = tile;
+                setTimeout(() => {
+                    t1.classList.remove('selected');
+                    t2.classList.remove('selected');
+                    firstTile = null;
+                    isProcessing = false;
+                }, 500);
+            }
+        }
+    }
+
+    function checkWin() {
+        if (document.querySelectorAll('.tile:not(.hidden)').length === 0) endGame(true);
+    }
+
+    startBtn.onclick = () => {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        overlay.style.display = 'none';
+        startTimer();
+        setTimeout(showTutorialHint, 1200);
+    };
+
+    function startTimer() {
+        timerId = setInterval(() => {
+            timeLeft--;
+            if (timeLeft < 0) timeLeft = 0;
+            timerDisplay.innerText = formatTime(timeLeft);
+            if (timeLeft <= 10) {
+                timerDisplay.style.color = 'var(--led-red)';
+                timerDisplay.style.textShadow = '0 0 10px var(--led-red)';
+            }
+            if (timeLeft <= 0) endGame(false);
+        }, 1000);
+    }
+
+    function endGame(isWin) {
+        clearInterval(timerId);
+        overlay.style.display = 'flex';
+        startMenu.style.display = 'none';
+        resultDiv.style.display = 'block';
+        document.getElementById('final-score-val').innerText = score;
+        speak("棒！棒！你真棒！");
+        createFireworks();
+    }
+
+    function createFireworks() {
+        for(let i=0; i<30; i++) {
+            setTimeout(() => {
+                const fw = document.createElement('div');
+                fw.className = 'firework';
+                fw.style.left = Math.random() * 100 + 'vw';
+                fw.style.top = Math.random() * 100 + 'vh';
+                const color = `hsl(${Math.random()*360}, 100%, 60%)`;
+                fw.style.backgroundColor = color;
+                fw.style.boxShadow = `0 0 20px 2px ${color}`;
+                document.body.appendChild(fw);
+                fw.animate([
+                    { transform: 'scale(0)', opacity: 1 },
+                    { transform: 'scale(5)', opacity: 0 }
+                ], { duration: 1000 });
+                setTimeout(() => fw.remove(), 1000);
+            }, i * 150);
+        }
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
